@@ -1,0 +1,334 @@
+///bin/true; exec highlighter -c "$0" "${@}"
+#-------------------------------------------------------------------------------
+# Key lines
+#-------------------------------------------------------------------------------
+
+pattern=beginning of (?:main|system)
+.line_color=b555/500
+.pre_line = #
+.pre_line_color = /500
+.post_line = #
+.post_line_color = /500
+.stop
+
+pattern=AndroidRuntime.*START.*ZygoteInit
+.line_color=b500/550
+.pre_line = *
+.pre_line_color = 500/550
+.post_line = *
+.post_line_color = 500/550
+.stop
+
+pattern=ServiceManager\: service.*died
+.line_color = b500/550
+.stop
+
+pattern=\ init\s+\:
+.color=151
+.line_color=/111
+
+pattern=\bZygote\b
+.color=b005/550
+.line_color=/311
+
+pattern = \bPackageManager\b
+.color=b500/550
+
+pattern = \bActivityManager\b
+.color=b030/550
+
+pattern=\bStrictMode\b
+.line_color=333/110
+.stop
+
+
+pattern = \bavc\b.*denied
+.color=b500
+.line_color=550/011
+.stop
+
+
+#-------------------------------------------------------------------------------
+# Ad-hoc patterns
+#-------------------------------------------------------------------------------
+
+# Highlight any line containing XXX
+pattern = (?i)XXX+
+.color=005
+.line_color=/red
+
+pattern=(?: (?:PeopleContactsSync)\:)
+.line_color=552/200
+
+pattern = (?i)com.google.android.gms.peope.[a-z\.]+
+.color=555
+.line_color=/cyan
+
+#-------------------------------------------------------------------------------
+# Process names from logcatp
+#-------------------------------------------------------------------------------
+
+# This guy is too verbose.
+pattern = (?:\bmaps\:(?:GoogleLocationService|LocationFriendService)\b)
+.line_color = 111/000
+.stop
+
+pattern = ^\[(system_server)
+.color=550/002
+
+pattern = #^ \[  (  com\.google\.android\.gms[\.a-zA-Z0-9_]*  )
+.color=550/200
+
+pattern = #^ \[  (  android\.process\.acore  )
+.color=100/055
+
+# Other processes
+pattern = (?:^\[[^\]]*\]\ )
+.color=550/000
+
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+
+# Activity manager
+pattern = \bActivityManager: START
+.line_color=byellow
+.pre_line = +
+.pre_line_color = bgreen
+.post_line = +
+.post_line_color = bgreen
+
+# Highlight the component name.
+pattern = \ cmp\=([a-zA-Z0-9_\/\.]+)
+.when = \bActivityManager\b
+.color=bgreen
+
+pattern = (\bActivityManager: Process .* has died|\bam_wtf\b)
+.line_color=b500/550
+.pre_line = #
+.pre_line_color = 500
+.post_line = #
+.post_line_color = 500
+
+pattern = \bActivityManager: Config changes
+.line_color=550/005
+
+pattern = \bActivityManager: Start\b
+.line_color=550
+
+pattern = \bActivityManager: No longer want\b
+.line_color=400
+
+# Other framework stuff.
+
+# Crash
+# Non-bold for stacktraces.
+pattern = \bAndroidRuntime\:\s+at\b
+.line_color=500/black
+
+# Bold for actual messages
+pattern = \bAndroidRuntime\b
+.line_color=b500/black
+
+pattern = \bFATAL EXCEPTION\b
+.pre_line = *
+.pre_line_color = bred/black
+
+pattern = \bForce finishing activity\b
+.post_line = *
+.post_line_color = bred
+
+pattern = hprof: heap dump completed
+.line_color=bred/blue
+.pre_line = @=
+.pre_line_color = bred/blue
+.post_line = @=
+.post_line_color = bred/blue
+
+# Testing stuff
+
+pattern = \ TestRunner:
+.line_color=byellow/515
+
+#-------------------------------------------------------------------------------
+# General performance log
+#-------------------------------------------------------------------------------
+
+# 1 digit ms
+pattern = # (?: ^ | [^\d\.]) ( \d (?:\.\d+)? \s* ms\b )
+.color=050
+
+# 2 digit ms
+pattern = # (?: ^ | [^\d\.]) ( \d{2} (?:\.\d+)? \s* ms\b )
+.color=550/200
+
+# 100-199 ms
+pattern = # (?: ^ | [^\d\.]) ( 1\d{2} (?:\.\d+)? \s* ms\b )
+.color=550/200
+
+# 200-999 ms
+pattern = # (?: ^ | [^\d\.]) ( [2-9]\d{2} (?:\.\d+)? \s* ms\b )
+.color=b550/300
+
+# 4+ digit ms
+pattern = # \d{4,} (?:\.\d+)? \s* ms\b
+.color=b552/500
+
+#-------------------------------------------------------------------------------
+# Basic colors for error/warning
+#-------------------------------------------------------------------------------
+
+# fatal
+
+pattern = (?:\d F |\bF[\/\(])
+.line_color=bred/550
+
+pattern = (?:\d F |\bF[\/\(])
+.states=INIT
+.pre_line=#
+.pre_line_color=bred
+.next_state=in_fatal
+
+pattern =!(?:\d F |\bF[\/\(])
+.states=in_fatal
+.pre_line=#
+.pre_line_color=bred
+.next_state=INIT
+
+# Warn / error logs
+
+pattern = (?:\d E |\bE[\/\(])
+.line_color=b500
+
+pattern = (?:\d W |\bW[\/\(])
+.line_color=b550
+
+#-------------------------------------------------------------------------------
+# Dalvik/GC
+#-------------------------------------------------------------------------------
+
+pattern = (?:GC_CONCURRENT|GC_EXPLICIT|WAIT_FOR_CONCURRENT_GC|GC_FOR_ALLOC)
+.line_color=220
+.color=300
+.stop
+
+pattern = \ dalvikvm-heap\:
+.line_color=300
+
+pattern = \ art\s+:
+.line_color=/111
+
+#-------------------------------------------------------------------------------
+# Framework
+#-------------------------------------------------------------------------------
+
+pattern = (DevicePolicyManager|UserManager)
+.line_color=050
+
+#-------------------------------------------------------------------------------
+# GMS-Core
+#-------------------------------------------------------------------------------
+
+#pattern = \ (PeopleSync\w+)
+#.color = 500
+#.line_color = /002
+#
+#pattern = \ (GmsClient|People\S+)
+#.color = 055
+#.line_color = /002
+#
+#pattern = \bVolley\b
+#.line_color = 055
+#
+#pattern = \ CoreAnalytics\:
+#.line_color = 030
+#
+
+pattern = \ Shortcut\w+
+.color = 500
+.line_color = /002
+
+#-------------------------------------------------------------------------------
+# Contacts
+#-------------------------------------------------------------------------------
+
+pattern = \ (?:ContactsProvider): (?:insert|delete|update|openAssetFile)
+.line_color=555/520
+
+pattern = \ (?:ContactsProvider): (?:query)
+.line_color=555/502
+
+pattern = \ (?:ContactsProvider)
+.line_color=555/023
+
+#-------------------------------------------------------------------------------
+# SQLite slow query log
+# to be used with:
+# adb shell setprop db.log.slow_query_threshold 0
+#-------------------------------------------------------------------------------
+
+# Hide SQL prepare
+pattern = \bSQLiteConnection: prepare\b
+.line_color=111
+.stop
+
+pattern = (?i)(?:\"(SELECT)\b)
+.when = \bSQLiteConnection: execute
+.color=bred
+.line_color=555/022
+
+pattern = (?i)(\bUNION\s+SELECT\b)
+.when = \bSQLiteConnection: execute
+.color=bred
+.line_color=555/022
+
+pattern = (?i)\"(INSERT\s+(OR\s+REPLACE\s+)?INTO)\b
+.when = \bSQLiteConnection: execute
+.color=bred
+.line_color=555/004
+
+pattern = (?i)\"(UPDATE)\b
+.when = \bSQLiteConnection: execute
+.color=bred
+.line_color=555/110
+
+pattern = (?i)\"(DELETE(?:\s+FROM)?)\b
+.when = \bSQLiteConnection: execute
+.color=bred
+.line_color=555/200
+
+pattern = (?i)\"(COMMIT|BEGIN)\b
+.when = \bSQLiteConnection: execute
+.color=bred
+.line_color=550/200
+
+pattern = (?i)\"(CREATE\s\S+|ALTER\s\S+|DROP\s+\S+|PRAGMA)\b
+.when = \bSQLiteConnection: execute
+.color=bred
+.line_color=555/202
+
+pattern = (?i)\b(from|where|select|order\s+by|group\s+by|union|values|inner\s+join|outer\s+join|left\s+outer\s+join|join)\b
+.when = \bSQLiteConnection: execute
+.color=055
+
+pattern = (?i)\ (?:countedRows|filledRows)\=\d+
+.when = \bSQLiteConnection: execute
+.color=b555
+
+pattern = \"[^\"]*\"
+.color = 550
+
+pattern = \'[^\']*\'
+.color = 055
+
+#-------------------------------------------------------------------------------
+# Default colors for debug/verbose
+#-------------------------------------------------------------------------------
+
+# Debug / verbose logs. (for the threadtime format, and for the other formats.)
+
+pattern = (?:\d D |\bD[\/\(])
+.line_color=333
+
+pattern = (?:\d V |\bV[\/\(])
+.line_color=222

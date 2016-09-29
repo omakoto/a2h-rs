@@ -1,0 +1,22 @@
+[package]
+name = "a2h"
+version = "0.1.0"
+authors = ["Makoto Onuki <makoto.onuki@gmail.com>"]
+
+[lib]
+name = "a2h"
+path = "src/lib.rs"
+
+[[bin]]
+name = "a2h"
+path = "src/main.rs"
+
+[dependencies]
+bitflags = "0.7"
+lazy_static = "0.1"
+fileinput = "0.3"
+clap = "2"
+rustache = "^0.0"
+
+log = "*"
+env_logger = "*"

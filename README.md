@@ -1,1 +1,1 @@
-# a2h-rs
+# highlighter-rs
