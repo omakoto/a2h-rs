@@ -67,22 +67,22 @@ const HTML_FOOTER: &'static str = r##"
 lazy_static!{
     static ref STANDARD_COLORS : [i32;8] = [
         rgb(0, 0, 0),
-        rgb(170, 0, 0),
-        rgb(0, 170, 0),
-        rgb(170, 85, 0),
-        rgb(0, 0, 170),
-        rgb(170, 0, 170),
-        rgb(0, 170, 170),
-        rgb(170, 170, 170),
+        rgb(205, 0, 0),
+        rgb(0, 205, 0),
+        rgb(205, 205, 0),
+        rgb(0, 0, 238),
+        rgb(205, 0, 205),
+        rgb(0, 205, 205),
+        rgb(229, 229, 229),
     ];
     static ref INTENSE_COLORS : [i32;8] = [
-        rgb(85, 85, 85),
-        rgb(255, 85, 85),
-        rgb(85, 255, 85),
-        rgb(255, 255, 85),
-        rgb(85, 85, 255),
-        rgb(255, 85, 255),
-        rgb(85, 255, 255),
+        rgb(127, 127, 127),
+        rgb(255, 0, 0),
+        rgb(0, 255, 0),
+        rgb(255, 255, 0),
+        rgb(92, 92, 255),
+        rgb(255, 0, 255),
+        rgb(0, 255, 255),
         rgb(255, 255, 255),
     ];
 }
@@ -570,19 +570,19 @@ impl A2hFilter {
                         }
                         '(' => {
                             // VT100 Code: e.g. ESC ( A
-                            i += 3;
+                            i += 2;
                             continue;
                         }
                         'c' => {
                             // "Reset to Intitial State"
                             self.reset();
                             self.end_span();
-                            i += 2;
+                            i += 1;
                             continue;
                         }
                         _ => {
                             // unknown.
-                            i += 1;
+                            // i += 1;
                             continue;
                         }
                     }
