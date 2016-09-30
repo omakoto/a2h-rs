@@ -135,9 +135,9 @@ fn xterm256_to_rgb(value: i32) -> i32 {
 
 fn get_index_color(index: i32, bold: bool) -> i32 {
     if bold {
-        return STANDARD_COLORS[index as usize];
-    } else {
         return INTENSE_COLORS[index as usize];
+    } else {
+        return STANDARD_COLORS[index as usize];
     }
 }
 
@@ -337,6 +337,9 @@ impl A2hFilter {
             if *ch == ';' {
                 self.csi_values[self.csi_values_len] = val;
                 self.csi_values_len += 1;
+                if self.csi_values_len >= CSI_BUF_SIZE {
+                    return;
+                }
                 val = 0;
                 has_val = false;
             } else if ch.is_digit(10) {
