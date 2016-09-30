@@ -85,13 +85,13 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
             .help("Input files"))
 }
 
-fn main() {
+fn read_main() -> Result<(), String> {
     env_logger::init().unwrap();
 
     let matches = get_app().get_matches();
     if matches.is_present(FLAG_BASHCOMP) {
         get_app().gen_completions_to("a2h", Shell::Bash, &mut io::stdout());
-        std::process::exit(0);
+        return Ok(());
     }
 
     let args: Vec<String> = env::args().collect();
@@ -130,10 +130,9 @@ fn main() {
     for line in reader.lines() {
         match line {
             Err(e) => {
-                error(&format!("{}", e));
                 match e.kind() {
                     std::io::ErrorKind::InvalidData => continue, // OK
-                    _ => std::process::exit(1),
+                    _ => return Err(format!("{}", e)),
                 }
             }
             Ok(s) => filter.process(&s, &writer),
@@ -141,4 +140,16 @@ fn main() {
     }
 
     filter.write_footer(&writer);
+
+    return Ok(());
+}
+
+fn main() {
+    match read_main() {
+        Ok(_) => return, // okay
+        Err(err) => {
+            error(&err);
+           std::process::exit(1);
+        }
+    }
 }
