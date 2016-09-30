@@ -15,6 +15,7 @@ use std::env;
 use std::sync::mpsc::*;
 use std::thread;
 use std::sync::*;
+use std::error::Error;
 
 use fileinput::FileInput;
 
@@ -57,7 +58,6 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
         .arg(Arg::with_name(FLAG_GAMMA)
             .short("g")
             .long(FLAG_GAMMA)
-            .default_value("1.0")
             .takes_value(true)
             .help("Gamma value for RGB conversion"))
         .arg(Arg::with_name(FLAG_BG_COLOR)
@@ -100,7 +100,17 @@ fn read_main() -> Result<(), String> {
     let auto_flush = matches.is_present(FLAG_AUTO_FLUSH);
 
     let title = matches.value_of(FLAG_TITLE).unwrap();
-    let gamma = value_t!(matches, FLAG_GAMMA, f64).unwrap();
+
+    let mut gamma_s = if matches.is_present(FLAG_GAMMA) {
+        matches.value_of(FLAG_GAMMA).unwrap().to_string()
+    } else {
+        match env::var("A2H_GAMMA") {
+            Ok(v) => v,
+            _ => "1.0".to_string(),
+        }
+    };
+    let gamma = try!(gamma_s.parse::<f64>().map_err(|e| format!("{}: {}", e.description().to_string(), gamma_s)));
+
     let fg_color = try!(Color::from_hex(matches.value_of(FLAG_FG_COLOR).unwrap()));
     let bg_color = try!(Color::from_hex(matches.value_of(FLAG_BG_COLOR).unwrap()));
     let font_size = matches.value_of(FLAG_FONT_SIZE).unwrap();
