@@ -15,8 +15,6 @@ use rustache::*;
 
 pub type W = Fn(&str);
 
-const COLOR_NONE: i32 = -1000;
-
 const KEY_TITLE: &'static str = "title";
 const KEY_FG_COLOR: &'static str = "fg_color";
 const KEY_BG_COLOR: &'static str = "bg_color";
