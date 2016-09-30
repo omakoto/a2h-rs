@@ -63,13 +63,13 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
         .arg(Arg::with_name(FLAG_BG_COLOR)
             .short("b")
             .long(FLAG_BG_COLOR)
-            .default_value("#000000")
+            .default_value("000000")
             .takes_value(true)
             .help("Background color"))
         .arg(Arg::with_name(FLAG_FG_COLOR)
             .short("c")
             .long(FLAG_FG_COLOR)
-            .default_value("#ffffff")
+            .default_value("ffffff")
             .takes_value(true)
             .help("Foreground color"))
         .arg(Arg::with_name(FLAG_FONT_SIZE)
@@ -101,8 +101,8 @@ fn read_main() -> Result<(), String> {
 
     let title = matches.value_of(FLAG_TITLE).unwrap();
     let gamma = value_t!(matches, FLAG_GAMMA, f64).unwrap();
-    let fg_color = matches.value_of(FLAG_FG_COLOR).unwrap();
-    let bg_color = matches.value_of(FLAG_BG_COLOR).unwrap();
+    let fg_color = try!(Color::from_hex(matches.value_of(FLAG_FG_COLOR).unwrap()));
+    let bg_color = try!(Color::from_hex(matches.value_of(FLAG_BG_COLOR).unwrap()));
     let font_size = matches.value_of(FLAG_FONT_SIZE).unwrap();
 
     let mut files: Vec<String> = vec![];
@@ -124,7 +124,7 @@ fn read_main() -> Result<(), String> {
     };
 
     // TODO Actually pass the FG/BG.
-    let mut filter = A2hFilter::new(&title, 0xffffff, 0x000000, &font_size, gamma);
+    let mut filter = A2hFilter::new(&title, fg_color, bg_color, &font_size, gamma);
 
     filter.write_header(&writer);
 

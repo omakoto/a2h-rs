@@ -9,7 +9,7 @@ extern crate rustache;
 
 use std::env;
 use std::fmt;
-use std::io::*;
+use std::io::Read;
 use std::cmp::*;
 use rustache::*;
 
@@ -74,7 +74,7 @@ fn gamma(gamma_value: f64, v: i32) -> i32 {
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-enum Color {
+pub enum Color {
     /// No color.
     None,
     /// Index color, 0-7.
@@ -83,11 +83,18 @@ enum Color {
 }
 
 impl Color {
-    fn from_int(rgb: i32) -> Color {
-        Color::from_rgb((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff)
+    pub fn from_hex(rrggbb: &str) -> Result<Color, String> {
+        match u32::from_str_radix(rrggbb, 16) {
+            Ok(v) => Ok(Color::from_int(v as i32)),
+            Err(e) => Err(format!("Invalid color '{}'; expected RRGGBB", rrggbb)),
+        }
     }
 
-    fn from_rgb(r: i32, g: i32, b: i32) -> Color {
+    pub fn from_int(rgb: i32) -> Color {
+        Color::from_rgb((rgb >> 16), (rgb >> 8), rgb)
+    }
+
+    pub fn from_rgb(r: i32, g: i32, b: i32) -> Color {
         Color::Rgb {
             r: r & 0xff,
             g: g & 0xff,
@@ -95,7 +102,7 @@ impl Color {
         }
     }
 
-    fn from_index(i: i32, bold: bool) -> Color {
+    pub fn from_index(i: i32, bold: bool) -> Color {
         Color::Index {
             index: i,
             bold: bold,
@@ -163,7 +170,7 @@ impl Color {
     fn to_int(&self) -> i32 {
         match self {
             &Color::Rgb { r, g, b } => {
-                return (r << 16) as i32 | (g < 8) as i32 | b;
+                return (r << 16) as i32 | (g << 8) as i32 | b;
             }
             &Color::Index { index, bold } => self._to_rgb().to_int(),
             _ => panic!("Can't get rgb from Color::None"),
@@ -173,15 +180,18 @@ impl Color {
     fn to_css_color(&self, gamma: f64) -> String {
         format!("#{:06x}", self._apply_gamma(gamma).to_int())
     }
-
-    // #[test]
-    // fn test_to_css_color() {
-    //     assert_eq!("#000000", rgb_to_hex(0));
-    //     assert_eq!("#0000ff", rgb_to_hex(0xff));
-    //     assert_eq!("#ffffff", rgb_to_hex(0xffffff));
-    // }
 }
 
+#[test]
+fn test_to_css_color() {
+    assert_eq!("#000000", Color::from_int(0).to_css_color(1.0));
+    assert_eq!("#000080", Color::from_int(0x80).to_css_color(1.0));
+    assert_eq!("#0000ff", Color::from_int(0xff).to_css_color(1.0));
+    assert_eq!("#ffffff", Color::from_int(0xffffff).to_css_color(1.0));
+
+    assert_eq!("#0000b4", Color::from_int(0x80).to_css_color(0.5));
+    assert_eq!("#00005a", Color::from_int(0x80).to_css_color(1.5));
+}
 
 lazy_static!{
     static ref STANDARD_COLORS : [Color;8] = [
@@ -290,11 +300,11 @@ fn csi_to_color(i: usize, csi_vals: &Box<[i32; CSI_BUF_SIZE]>) -> (Color, usize)
 }
 
 impl A2hFilter {
-    pub fn new(title: &str, fg_rgb: i32, bg_rgb: i32, font_size: &str, gamma: f64) -> A2hFilter {
+    pub fn new(title: &str, fg_rgb: Color, bg_rgb: Color, font_size: &str, gamma: f64) -> A2hFilter {
         A2hFilter {
             title: title.to_string(),
-            html_fg_color: Color::from_int(fg_rgb),
-            html_bg_color: Color::from_int(bg_rgb),
+            html_fg_color: fg_rgb,
+            html_bg_color: bg_rgb,
             font_size: font_size.to_string(),
             gamma: gamma,
 
