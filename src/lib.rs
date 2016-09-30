@@ -225,8 +225,6 @@ fn test_parse_int() {
     assert_eq!(255, parse_int("255", 999));
 }
 
-const CSI_BUF_SIZE: usize = 10;
-
 pub struct A2hFilter {
     /// HTML title
     title: String,
@@ -258,8 +256,6 @@ pub struct A2hFilter {
     num_rows: usize,
 
     line_buf: String,
-    csi_values: Box<[i32; CSI_BUF_SIZE]>,
-    csi_values_len: usize,
 }
 
 fn peek(line: &Vec<char>, index: usize) -> char {
@@ -275,7 +271,7 @@ fn is_csi_end(b: char) -> bool {
 }
 
 // TODO Make it a member.
-fn csi_to_color(i: usize, csi_vals: &Box<[i32; CSI_BUF_SIZE]>) -> (Color, usize) {
+fn csi_to_color(i: usize, csi_vals: &[i32]) -> (Color, usize) {
     let mut i = i;
     let mut ret = Color::None;
     let next = csi_vals[i];
@@ -323,8 +319,6 @@ impl A2hFilter {
             num_rows: 0,
 
             line_buf: String::new(),
-            csi_values: Box::new([0; CSI_BUF_SIZE]),
-            csi_values_len: 0,
         }
     }
 
@@ -391,95 +385,98 @@ impl A2hFilter {
         }
     }
 
-    fn parse_csi_values(&mut self, csi: &[char]) {
-        self.csi_values_len = 0;
+    fn parse_csi_values(&mut self, csi: &[char], out: &mut [i32], out_len: &mut usize) {
+        *out_len = 0;
         let mut val = 0;
         let mut has_val = false;
         for ch in csi {
             if *ch == ';' {
-                self.csi_values[self.csi_values_len] = val;
-                self.csi_values_len += 1;
-                if self.csi_values_len >= CSI_BUF_SIZE {
-                    return;
-                }
+                out[*out_len] = val;
+                *out_len += 1;
                 val = 0;
                 has_val = false;
+                if *out_len >= out.len() {
+                    break;
+                }
             } else if ch.is_digit(10) {
                 val *= 10;
                 val += (*ch as i32) - ('0' as i32);
                 has_val = true;
             } else {
-                return;
+                break;
             }
         }
         if has_val {
-            self.csi_values[self.csi_values_len] = val;
-            self.csi_values_len += 1;
+            out[*out_len] = val;
+            *out_len += 1;
+        }
+        // Special case, ESC[m -> same as ESC[0m.
+        if *out_len == 0 {
+            *out_len = 1;
+            out[0] = 0;
         }
     }
 
     fn convert_csi(&mut self, csi: &[char]) {
-        self.parse_csi_values(csi);
+        let mut values = [0; 10];
+        let mut values_len = 0;
+        self.parse_csi_values(csi, &mut values, &mut values_len);
 
         let mut i = 0usize;
-        if self.csi_values_len == 0 {
-            self.reset();
-        } else {
-            while i < self.csi_values_len {
-                let code = self.csi_values[i]; // first code
-                i += 1;
-                if code == 0 {
-                    self.reset();
-                } else if code == 1 {
-                    self.bold = true;
-                    self.fg = self.fg.apply_bold(true);
-                } else if code == 2 {
-                    self.faint = true;
-                } else if code == 3 {
-                    self.italic = true;
-                } else if code == 4 {
-                    self.underline = true;
-                } else if code == 5 {
-                    self.blink = true;
-                } else if code == 7 {
-                    self.negative = true;
-                } else if code == 8 {
-                    self.conceal = true;
-                } else if code == 9 {
-                    self.crossout = true;
-                } else if code == 21 {
-                    self.bold = false;
-                    self.fg = self.fg.apply_bold(false);
-                } else if code == 22 {
-                    self.bold = false;
-                    self.faint = false;
-                } else if code == 23 {
-                    self.italic = false;
-                } else if code == 24 {
-                    self.underline = false;
-                } else if code == 25 {
-                    self.blink = false;
-                } else if code == 27 {
-                    self.negative = false;
-                } else if code == 28 {
-                    self.conceal = false;
-                } else if code == 29 {
-                    self.crossout = false;
-                } else if 30 <= code && code <= 37 {
-                    self.fg = Color::from_index((code as i32) - 30, self.bold);
-                } else if 40 <= code && code <= 47 {
-                    self.bg = Color::from_index((code as i32) - 40, false);
-                } else if code == 38 {
-                    let (fg, next_i) = csi_to_color(i, &self.csi_values);
-                    self.fg = fg;
-                    i = next_i;
-                } else if code == 48 {
-                    let (bg, next_i) = csi_to_color(i, &self.csi_values);
-                    self.bg = bg;
-                    i = next_i;
-                } else {
-                    // Unknown
-                }
+        while i < values_len {
+            let code = values[i]; // first code
+            i += 1;
+            if code == 0 {
+                self.reset();
+            } else if code == 1 {
+                self.bold = true;
+                self.fg = self.fg.apply_bold(true);
+            } else if code == 2 {
+                self.faint = true;
+            } else if code == 3 {
+                self.italic = true;
+            } else if code == 4 {
+                self.underline = true;
+            } else if code == 5 {
+                self.blink = true;
+            } else if code == 7 {
+                self.negative = true;
+            } else if code == 8 {
+                self.conceal = true;
+            } else if code == 9 {
+                self.crossout = true;
+            } else if code == 21 {
+                self.bold = false;
+                self.fg = self.fg.apply_bold(false);
+            } else if code == 22 {
+                self.bold = false;
+                self.faint = false;
+            } else if code == 23 {
+                self.italic = false;
+            } else if code == 24 {
+                self.underline = false;
+            } else if code == 25 {
+                self.blink = false;
+            } else if code == 27 {
+                self.negative = false;
+            } else if code == 28 {
+                self.conceal = false;
+            } else if code == 29 {
+                self.crossout = false;
+            } else if 30 <= code && code <= 37 {
+                self.fg = Color::from_index((code as i32) - 30, self.bold);
+            } else if 40 <= code && code <= 47 {
+                self.bg = Color::from_index((code as i32) - 40, false);
+            } else if code == 38 {
+                let (fg, next_i) = csi_to_color(i, &values);
+                self.fg = fg;
+                i = next_i;
+            } else if code == 48 {
+                let (bg, next_i) = csi_to_color(i, &values);
+                self.bg = bg;
+                i = next_i;
+            } else {
+                // Unknown
             }
         }
 
