@@ -357,58 +357,62 @@ impl A2hFilter {
         self.parse_csi_values(csi);
 
         let mut i = 0usize;
-        while i < self.csi_values_len {
-            let code = self.csi_values[i]; // first code
-            i += 1;
-            if code == 0 {
-                self.reset();
-            } else if code == 1 {
-                self.bold = true;
-            } else if code == 2 {
-                self.faint = true;
-            } else if code == 3 {
-                self.italic = true;
-            } else if code == 4 {
-                self.underline = true;
-            } else if code == 5 {
-                self.blink = true;
-            } else if code == 7 {
-                self.negative = true;
-            } else if code == 8 {
-                self.conceal = true;
-            } else if code == 9 {
-                self.crossout = true;
-            } else if code == 21 {
-                self.bold = false;
-            } else if code == 22 {
-                self.bold = false;
-                self.faint = false;
-            } else if code == 23 {
-                self.italic = false;
-            } else if code == 24 {
-                self.underline = false;
-            } else if code == 25 {
-                self.blink = false;
-            } else if code == 27 {
-                self.negative = false;
-            } else if code == 28 {
-                self.conceal = false;
-            } else if code == 29 {
-                self.crossout = false;
-            } else if 30 <= code && code <= 37 {
-                self.fg = -((code as i32) - 30 + 1); // FG color, index
-            } else if 40 <= code && code <= 47 {
-                self.bg = -((code as i32) - 40 + 1); // BG color, index
-            } else if code == 38 {
-                let (fg, next_i) = csi_to_rgb(i, &self.csi_values);
-                self.fg = fg as i32;
-                i = next_i;
-            } else if code == 48 {
-                let (bg, next_i) = csi_to_rgb(i, &self.csi_values);
-                self.bg = bg as i32;
-                i = next_i;
-            } else {
-                // Unknown
+        if self.csi_values_len == 0 {
+            self.reset();
+        } else {
+            while i < self.csi_values_len {
+                let code = self.csi_values[i]; // first code
+                i += 1;
+                if code == 0 {
+                    self.reset();
+                } else if code == 1 {
+                    self.bold = true;
+                } else if code == 2 {
+                    self.faint = true;
+                } else if code == 3 {
+                    self.italic = true;
+                } else if code == 4 {
+                    self.underline = true;
+                } else if code == 5 {
+                    self.blink = true;
+                } else if code == 7 {
+                    self.negative = true;
+                } else if code == 8 {
+                    self.conceal = true;
+                } else if code == 9 {
+                    self.crossout = true;
+                } else if code == 21 {
+                    self.bold = false;
+                } else if code == 22 {
+                    self.bold = false;
+                    self.faint = false;
+                } else if code == 23 {
+                    self.italic = false;
+                } else if code == 24 {
+                    self.underline = false;
+                } else if code == 25 {
+                    self.blink = false;
+                } else if code == 27 {
+                    self.negative = false;
+                } else if code == 28 {
+                    self.conceal = false;
+                } else if code == 29 {
+                    self.crossout = false;
+                } else if 30 <= code && code <= 37 {
+                    self.fg = -((code as i32) - 30 + 1); // FG color, index
+                } else if 40 <= code && code <= 47 {
+                    self.bg = -((code as i32) - 40 + 1); // BG color, index
+                } else if code == 38 {
+                    let (fg, next_i) = csi_to_rgb(i, &self.csi_values);
+                    self.fg = fg as i32;
+                    i = next_i;
+                } else if code == 48 {
+                    let (bg, next_i) = csi_to_rgb(i, &self.csi_values);
+                    self.bg = bg as i32;
+                    i = next_i;
+                } else {
+                    // Unknown
+                }
             }
         }
 
