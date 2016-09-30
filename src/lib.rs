@@ -490,16 +490,6 @@ impl A2hFilter {
             return;
         }
 
-        // let mut fg = self.fg;
-        // let mut bg = self.bg;
-        // // Convert index color to RGB
-        // if fg < 0 && fg != COLOR_NONE {
-        //     fg = get_index_color(-fg - 1, self.bold);
-        // }
-        // if bg < 0 && bg != COLOR_NONE {
-        //     bg = get_index_color(-bg - 1, false);
-        // }
-
         self.end_span();
 
         self.in_span = true;
@@ -525,7 +515,6 @@ impl A2hFilter {
             self.add_to_line("text-decoration:line-through;");
         }
 
-        // TODO This part should just use integers.
         let mut f = self.fg.or_default(self.html_fg_color);
         let mut b = self.bg.or_default(self.html_bg_color);
 
@@ -648,7 +637,6 @@ impl A2hFilter {
                         }
                         _ => {
                             // unknown.
-                            // i += 1;
                             continue;
                         }
                     }
