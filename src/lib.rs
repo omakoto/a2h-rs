@@ -63,34 +63,6 @@ const HTML_FOOTER: &'static str = r##"
 </html>
 "##;
 
-
-lazy_static!{
-    static ref STANDARD_COLORS : [i32;8] = [
-        rgb(0, 0, 0),
-        rgb(205, 0, 0),
-        rgb(0, 205, 0),
-        rgb(205, 205, 0),
-        rgb(64, 64, 238),
-        rgb(205, 0, 205),
-        rgb(0, 205, 205),
-        rgb(229, 229, 229),
-    ];
-    static ref INTENSE_COLORS : [i32;8] = [
-        rgb(127, 127, 127),
-        rgb(255, 0, 0),
-        rgb(0, 255, 0),
-        rgb(255, 255, 0),
-        rgb(92, 92, 255),
-        rgb(255, 0, 255),
-        rgb(0, 255, 255),
-        rgb(255, 255, 255),
-    ];
-}
-
-fn rgb(r8: i32, g8: i32, b8: i32) -> i32 {
-    r8 << 16 | g8 << 8 | b8
-}
-
 fn gamma(gamma_value: f64, v: i32) -> i32 {
     let mut x: f64 = ((v as f64) / 255.0).powf(gamma_value);
     if x < 0f64 {
@@ -101,44 +73,137 @@ fn gamma(gamma_value: f64, v: i32) -> i32 {
     (x * 255f64) as i32
 }
 
-fn gamma_rgb(gamma_value: f64, rgb888: i32) -> i32 {
-    let r8 = gamma(gamma_value, (rgb888 >> 16) & 255);
-    let g8 = gamma(gamma_value, (rgb888 >> 8) & 255);
-    let b8 = gamma(gamma_value, (rgb888) & 255);
-    rgb(r8, g8, b8)
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+enum Color {
+    /// No color.
+    None,
+    /// Index color, 0-7.
+    Index { index: i32, bold: bool },
+    Rgb { r: i32, g: i32, b: i32 },
 }
 
-fn xterm256_to_rgb(value: i32) -> i32 {
-    if value < 8 {
-        return get_index_color(value,
-                               // bold=
-                               false);
-    }
-    if value < 16 {
-        return get_index_color(value,
-                               // bold=
-                               true);
-    }
-    if 232 <= value && value <= 256 {
-        // Gray
-        let level = (value - 232) * 10 + 8;
-        return rgb(level, level, level);
+impl Color {
+    fn from_int(rgb: i32) -> Color {
+        Color::from_rgb((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff)
     }
 
-    let value = value - 16;
+    fn from_rgb(r: i32, g: i32, b: i32) -> Color {
+        Color::Rgb {
+            r: r & 0xff,
+            g: g & 0xff,
+            b: b & 0xff,
+        }
+    }
 
-    let b = value % 6;
-    let g = (value / 6) % 6;
-    let r = (value / 36) % 6;
-    rgb(r * 255 / 5, g * 255 / 5, b * 255 / 5)
+    fn from_index(i: i32, bold: bool) -> Color {
+        Color::Index {
+            index: i,
+            bold: bold,
+        }
+    }
+
+    fn apply_bold(&self, bold: bool) -> Color {
+        match self {
+            &Color::Index { index, bold } => Color::from_index(index, bold),
+            _ => return *self,
+        }
+    }
+
+    fn or_default(&self, def: Color) -> Color {
+        return if *self == Color::None { def } else { *self };
+    }
+
+    fn _apply_gamma(&self, gamma_value: f64) -> Color {
+        match self {
+            &Color::Rgb { r, g, b } => {
+                let r = gamma(gamma_value, r);
+                let g = gamma(gamma_value, g);
+                let b = gamma(gamma_value, b);
+                return Color::from_rgb(r, g, b);
+            }
+            &Color::Index { index, bold } => self._to_rgb()._apply_gamma(gamma_value),
+            _ => return *self,
+        }
+    }
+
+    fn _to_rgb(&self) -> Color {
+        match self {
+            &Color::Index { index, bold } => {
+                if bold {
+                    return INTENSE_COLORS[index as usize];
+                } else {
+                    return STANDARD_COLORS[index as usize];
+                }
+            }
+            _ => return *self,
+        }
+    }
+
+    fn from_xterm256(value: i32) -> Color {
+        if value < 8 {
+            return Color::from_index(value, false);
+        }
+        if value < 16 {
+            return Color::from_index(value - 8, true);
+        }
+        if 232 <= value && value <= 256 {
+            // Gray
+            let level = (value - 232) * 10 + 8;
+            return Color::from_rgb(level, level, level);
+        }
+
+        let value = value - 16;
+
+        let b = value % 6;
+        let g = (value / 6) % 6;
+        let r = (value / 36) % 6;
+        Color::from_rgb(r * 255 / 5, g * 255 / 5, b * 255 / 5)
+    }
+
+    fn to_int(&self) -> i32 {
+        match self {
+            &Color::Rgb { r, g, b } => {
+                return (r << 16) as i32 | (g < 8) as i32 | b;
+            }
+            &Color::Index { index, bold } => self._to_rgb().to_int(),
+            _ => panic!("Can't get rgb from Color::None"),
+        }
+    }
+
+    fn to_css_color(&self, gamma: f64) -> String {
+        format!("#{:06x}", self._apply_gamma(gamma).to_int())
+    }
+
+    // #[test]
+    // fn test_to_css_color() {
+    //     assert_eq!("#000000", rgb_to_hex(0));
+    //     assert_eq!("#0000ff", rgb_to_hex(0xff));
+    //     assert_eq!("#ffffff", rgb_to_hex(0xffffff));
+    // }
 }
 
-fn get_index_color(index: i32, bold: bool) -> i32 {
-    if bold {
-        return INTENSE_COLORS[index as usize];
-    } else {
-        return STANDARD_COLORS[index as usize];
-    }
+
+lazy_static!{
+    static ref STANDARD_COLORS : [Color;8] = [
+        Color::from_rgb(0, 0, 0),
+        Color::from_rgb(205, 0, 0),
+        Color::from_rgb(0, 205, 0),
+        Color::from_rgb(205, 205, 0),
+        Color::from_rgb(64, 64, 238),
+        Color::from_rgb(205, 0, 205),
+        Color::from_rgb(0, 205, 205),
+        Color::from_rgb(229, 229, 229),
+    ];
+    static ref INTENSE_COLORS : [Color;8] = [
+        Color::from_rgb(127, 127, 127),
+        Color::from_rgb(255, 0, 0),
+        Color::from_rgb(0, 255, 0),
+        Color::from_rgb(255, 255, 0),
+        Color::from_rgb(92, 92, 255),
+        Color::from_rgb(255, 0, 255),
+        Color::from_rgb(0, 255, 255),
+        Color::from_rgb(255, 255, 255),
+    ];
 }
 
 fn parse_int(s: &str, def: i32) -> i32 {
@@ -152,34 +217,23 @@ fn test_parse_int() {
     assert_eq!(255, parse_int("255", 999));
 }
 
-fn rgb_to_hex(rgb888: i32) -> String {
-    format!("#{:06x}", rgb888)
-}
-
-#[test]
-fn test_rgb_to_hex() {
-    assert_eq!("#000000", rgb_to_hex(0));
-    assert_eq!("#0000ff", rgb_to_hex(0xff));
-    assert_eq!("#ffffff", rgb_to_hex(0xffffff));
-}
-
 const CSI_BUF_SIZE: usize = 10;
 
 pub struct A2hFilter {
     /// HTML title
     title: String,
     /// HTML fg color
-    fg_color: i32,
+    html_fg_color: Color,
     /// HTML bg color
-    bg_color: i32,
+    html_bg_color: Color,
     /// HTML font size
     font_size: String,
     /// Gomma for RGB conversion
     gamma: f64,
 
     /// FG color: positive: rgb, negative: index, or COLOR_NONE
-    fg: i32,
-    bg: i32,
+    fg: Color,
+    bg: Color,
 
     bold: bool,
     faint: bool,
@@ -213,22 +267,22 @@ fn is_csi_end(b: char) -> bool {
 }
 
 // TODO Make it a member.
-fn csi_to_rgb(i: usize, csi_vals: &Box<[i32; CSI_BUF_SIZE]>) -> (i32, usize) {
+fn csi_to_color(i: usize, csi_vals: &Box<[i32; CSI_BUF_SIZE]>) -> (Color, usize) {
     let mut i = i;
-    let mut ret = 0;
+    let mut ret = Color::None;
     let next = csi_vals[i];
     if next == 5 {
         if i + 1 < csi_vals.len() {
             // Xterm 256 colors
             i += 1;
-            ret = xterm256_to_rgb(csi_vals[i]);
+            ret = Color::from_xterm256(csi_vals[i]);
             i += 1;
         }
     } else if next == 2 {
         // Kterm 24 bit color
         if i + 3 < csi_vals.len() {
             i += 1;
-            ret = rgb(csi_vals[i], csi_vals[i + 1], csi_vals[i + 2]);
+            ret = Color::from_rgb(csi_vals[i], csi_vals[i + 1], csi_vals[i + 2]);
             i += 3;
         }
     }
@@ -236,21 +290,16 @@ fn csi_to_rgb(i: usize, csi_vals: &Box<[i32; CSI_BUF_SIZE]>) -> (i32, usize) {
 }
 
 impl A2hFilter {
-    pub fn new(title: &str,
-               fg_color: i32,
-               bg_color: i32,
-               font_size: &str,
-               gamma: f64)
-               -> A2hFilter {
+    pub fn new(title: &str, fg_rgb: i32, bg_rgb: i32, font_size: &str, gamma: f64) -> A2hFilter {
         A2hFilter {
             title: title.to_string(),
-            fg_color: fg_color,
-            bg_color: bg_color,
+            html_fg_color: Color::from_int(fg_rgb),
+            html_bg_color: Color::from_int(bg_rgb),
             font_size: font_size.to_string(),
             gamma: gamma,
 
-            fg: COLOR_NONE,
-            bg: COLOR_NONE,
+            fg: Color::None,
+            bg: Color::None,
             bold: false,
             faint: false,
             italic: false,
@@ -272,8 +321,8 @@ impl A2hFilter {
     }
 
     pub fn reset(&mut self) {
-        self.fg = COLOR_NONE;
-        self.bg = COLOR_NONE;
+        self.fg = Color::None;
+        self.bg = Color::None;
         self.bold = false;
         self.faint = false;
         self.italic = false;
@@ -285,9 +334,9 @@ impl A2hFilter {
     }
 
     fn has_attr(&self) -> bool {
-        self.fg != COLOR_NONE || self.bg != COLOR_NONE || self.bold || self.faint ||
-        self.italic || self.underline || self.blink || self.negative || self.conceal ||
-        self.crossout
+        self.fg != Color::None || self.bg != Color::None || self.bold || self.faint ||
+        self.italic || self.underline || self.blink || self.negative ||
+        self.conceal || self.crossout
     }
 
     fn add_char_to_line(&mut self, ch: char) {
@@ -375,6 +424,7 @@ impl A2hFilter {
                     self.reset();
                 } else if code == 1 {
                     self.bold = true;
+                    self.fg = self.fg.apply_bold(true);
                 } else if code == 2 {
                     self.faint = true;
                 } else if code == 3 {
@@ -391,6 +441,7 @@ impl A2hFilter {
                     self.crossout = true;
                 } else if code == 21 {
                     self.bold = false;
+                    self.fg = self.fg.apply_bold(false);
                 } else if code == 22 {
                     self.bold = false;
                     self.faint = false;
@@ -407,16 +458,16 @@ impl A2hFilter {
                 } else if code == 29 {
                     self.crossout = false;
                 } else if 30 <= code && code <= 37 {
-                    self.fg = -((code as i32) - 30 + 1); // FG color, index
+                    self.fg = Color::from_index((code as i32) - 30, self.bold);
                 } else if 40 <= code && code <= 47 {
-                    self.bg = -((code as i32) - 40 + 1); // BG color, index
+                    self.bg = Color::from_index((code as i32) - 40, false);
                 } else if code == 38 {
-                    let (fg, next_i) = csi_to_rgb(i, &self.csi_values);
-                    self.fg = fg as i32;
+                    let (fg, next_i) = csi_to_color(i, &self.csi_values);
+                    self.fg = fg;
                     i = next_i;
                 } else if code == 48 {
-                    let (bg, next_i) = csi_to_rgb(i, &self.csi_values);
-                    self.bg = bg as i32;
+                    let (bg, next_i) = csi_to_color(i, &self.csi_values);
+                    self.bg = bg;
                     i = next_i;
                 } else {
                     // Unknown
@@ -429,15 +480,15 @@ impl A2hFilter {
             return;
         }
 
-        let mut fg = self.fg;
-        let mut bg = self.bg;
-        // Convert index color to RGB
-        if fg < 0 && fg != COLOR_NONE {
-            fg = get_index_color(-fg - 1, self.bold);
-        }
-        if bg < 0 && bg != COLOR_NONE {
-            bg = get_index_color(-bg - 1, false);
-        }
+        // let mut fg = self.fg;
+        // let mut bg = self.bg;
+        // // Convert index color to RGB
+        // if fg < 0 && fg != COLOR_NONE {
+        //     fg = get_index_color(-fg - 1, self.bold);
+        // }
+        // if bg < 0 && bg != COLOR_NONE {
+        //     bg = get_index_color(-bg - 1, false);
+        // }
 
         self.end_span();
 
@@ -465,32 +516,25 @@ impl A2hFilter {
         }
 
         // TODO This part should just use integers.
-        let mut b = if bg == COLOR_NONE {
-            self.bg_color.clone()
-        } else {
-            rgb_to_hex(gamma_rgb(self.gamma, bg))
-        };
+        let mut f = self.fg.or_default(self.html_fg_color);
+        let mut b = self.bg.or_default(self.html_bg_color);
 
-        let mut f = if fg == COLOR_NONE {
-            self.fg_color.clone()
-        } else {
-            rgb_to_hex(gamma_rgb(self.gamma, fg))
-        };
         if self.negative {
             std::mem::swap(&mut f, &mut b);
         }
         if self.conceal {
-            f = b.clone();
+            f = b;
         }
 
-        if f != self.fg_color {
+        let gamma = self.gamma;
+        if f != self.html_fg_color {
             self.add_to_line("color:");
-            self.add_to_line(&f);
+            self.add_to_line(&f.to_css_color(gamma));
             self.add_to_line(";");
         }
-        if b != self.bg_color {
+        if b != self.html_bg_color {
             self.add_to_line("background-color:");
-            self.add_to_line(&b);
+            self.add_to_line(&b.to_css_color(gamma));
             self.add_to_line(";");
         }
         self.add_to_line("\">");
@@ -620,8 +664,8 @@ impl A2hFilter {
     {
         let data = HashBuilder::new()
             .insert_string(KEY_TITLE, &self.title)
-            .insert_string(KEY_FG_COLOR, &self.fg_color)
-            .insert_string(KEY_BG_COLOR, &self.bg_color)
+            .insert_string(KEY_FG_COLOR, &self.html_fg_color.to_css_color(self.gamma))
+            .insert_string(KEY_BG_COLOR, &self.html_bg_color.to_css_color(self.gamma))
             .insert_string(KEY_FONT_SIZE, &self.font_size);
 
         let mut s: String = String::new();
