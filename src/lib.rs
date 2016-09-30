@@ -166,10 +166,15 @@ fn test_rgb_to_hex() {
 const CSI_BUF_SIZE: usize = 10;
 
 pub struct A2hFilter {
+    /// HTML title
     title: String,
-    fg_color: String,
-    bg_color: String,
+    /// HTML fg color
+    fg_color: i32,
+    /// HTML bg color
+    bg_color: i32,
+    /// HTML font size
     font_size: String,
+    /// Gomma for RGB conversion
     gamma: f64,
 
     /// FG color: positive: rgb, negative: index, or COLOR_NONE
@@ -232,15 +237,15 @@ fn csi_to_rgb(i: usize, csi_vals: &Box<[i32; CSI_BUF_SIZE]>) -> (i32, usize) {
 
 impl A2hFilter {
     pub fn new(title: &str,
-               fg_color: &str,
-               bg_color: &str,
+               fg_color: i32,
+               bg_color: i32,
                font_size: &str,
                gamma: f64)
                -> A2hFilter {
         A2hFilter {
             title: title.to_string(),
-            fg_color: fg_color.to_string(),
-            bg_color: bg_color.to_string(),
+            fg_color: fg_color,
+            bg_color: bg_color,
             font_size: font_size.to_string(),
             gamma: gamma,
 

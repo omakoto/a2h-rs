@@ -123,7 +123,8 @@ fn read_main() -> Result<(), String> {
         }
     };
 
-    let mut filter = A2hFilter::new(&title, &fg_color, &bg_color, &font_size, gamma);
+    // TODO Actually pass the FG/BG.
+    let mut filter = A2hFilter::new(&title, 0xffffff, 0x000000, &font_size, gamma);
 
     filter.write_header(&writer);
 
