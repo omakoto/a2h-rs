@@ -59,7 +59,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
             .short("g")
             .long(FLAG_GAMMA)
             .takes_value(true)
-            .help("Gamma value for RGB conversion"))
+            .help("Gamma value for RGB conversion ($A2H_GAMMA can be used too)"))
         .arg(Arg::with_name(FLAG_BG_COLOR)
             .short("b")
             .long(FLAG_BG_COLOR)
@@ -75,9 +75,8 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
         .arg(Arg::with_name(FLAG_FONT_SIZE)
             .short("s")
             .long(FLAG_FONT_SIZE)
-            .default_value("9pt")
             .takes_value(true)
-            .help("Text size"))
+            .help("Text size ($A2H_SIZE can be used too)"))
         .arg(Arg::with_name(FLAG_FILES)
             .index(1)
             .required(false)
@@ -113,7 +112,14 @@ fn real_main() -> Result<(), String> {
 
     let fg_color = try!(Color::from_hex(matches.value_of(FLAG_FG_COLOR).unwrap()));
     let bg_color = try!(Color::from_hex(matches.value_of(FLAG_BG_COLOR).unwrap()));
-    let font_size = matches.value_of(FLAG_FONT_SIZE).unwrap();
+    let mut font_size = if matches.is_present(FLAG_FONT_SIZE) {
+        matches.value_of(FLAG_FONT_SIZE).unwrap().to_string()
+    } else {
+        match env::var("A2H_SIZE") {
+            Ok(v) => v,
+            _ => "9pt".to_string(),
+        }
+    };
 
     let mut files: Vec<String> = vec![];
     if let Some(arg_files) = matches.values_of("files") {
