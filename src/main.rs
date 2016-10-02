@@ -85,7 +85,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
             .help("Input files"))
 }
 
-fn read_main() -> Result<(), String> {
+fn real_main() -> Result<(), String> {
     env_logger::init().unwrap();
 
     let matches = get_app().get_matches();
@@ -156,7 +156,7 @@ fn read_main() -> Result<(), String> {
 }
 
 fn main() {
-    match read_main() {
+    match real_main() {
         Ok(_) => return, // okay
         Err(err) => {
             error(&err);
