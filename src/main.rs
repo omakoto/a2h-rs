@@ -108,10 +108,10 @@ fn real_main() -> Result<(), String> {
             _ => "1.0".to_string(),
         }
     };
-    let gamma = try!(gamma_s.parse::<f64>().map_err(|e| format!("{}: {}", e.description().to_string(), gamma_s)));
+    let gamma = gamma_s.parse::<f64>().map_err(|e| format!("{}: {}", e.description().to_string(), gamma_s))?;
 
-    let fg_color = try!(Color::from_hex(matches.value_of(FLAG_FG_COLOR).unwrap()));
-    let bg_color = try!(Color::from_hex(matches.value_of(FLAG_BG_COLOR).unwrap()));
+    let fg_color = Color::from_hex(matches.value_of(FLAG_FG_COLOR).unwrap())?;
+    let bg_color = Color::from_hex(matches.value_of(FLAG_BG_COLOR).unwrap())?;
     let mut font_size = if matches.is_present(FLAG_FONT_SIZE) {
         matches.value_of(FLAG_FONT_SIZE).unwrap().to_string()
     } else {
