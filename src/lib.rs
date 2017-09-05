@@ -294,7 +294,12 @@ fn csi_to_color(i: usize, csi_vals: &[i32]) -> (Color, usize) {
 }
 
 impl A2hFilter {
-    pub fn new(title: &str, fg_rgb: Color, bg_rgb: Color, font_size: &str, gamma: f64) -> A2hFilter {
+    pub fn new(title: &str,
+               fg_rgb: Color,
+               bg_rgb: Color,
+               font_size: &str,
+               gamma: f64)
+               -> A2hFilter {
         A2hFilter {
             title: title.to_string(),
             html_fg_color: fg_rgb,
@@ -467,6 +472,13 @@ impl A2hFilter {
                 self.fg = Color::from_index((code as i32) - 30, self.bold);
             } else if 40 <= code && code <= 47 {
                 self.bg = Color::from_index((code as i32) - 40, false);
+
+            } else if 90 <= code && code <= 97 {
+                // 9x and 10x are used by Rust.
+                self.fg = Color::from_index((code as i32) - 90, true);
+            } else if 100 <= code && code <= 107 {
+                self.bg = Color::from_index((code as i32) - 100, false);
+
             } else if code == 38 {
                 let (fg, next_i) = csi_to_color(i, &values);
                 self.fg = fg;
