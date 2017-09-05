@@ -12,11 +12,11 @@ name = "a2h"
 path = "src/main.rs"
 
 [dependencies]
-bitflags = "0.7"
-lazy_static = "0.1"
-fileinput = "0.3"
+bitflags = "*"
+lazy_static = "*"
+fileinput = "*"
 clap = "2"
-rustache = "^0.0"
+rustache = "*"
 
 log = "*"
 env_logger = "*"

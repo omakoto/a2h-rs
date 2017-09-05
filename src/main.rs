@@ -41,7 +41,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
     App::new("A2H")
         .version("0.1")
         .author("Makoto Onuki <makoto.onuki@gmail.com>")
-        .about("Regex based text highlighter")
+        .about("ANSI color to HTML converter")
         .arg(Arg::with_name(FLAG_AUTO_FLUSH)
             .short("f")
             .long(FLAG_AUTO_FLUSH)
