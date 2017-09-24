@@ -390,7 +390,7 @@ impl A2hFilter {
         }
     }
 
-    fn parse_csi_values(&mut self, csi: &[char], out: &mut [i32], out_len: &mut usize) {
+    fn parse_csi_values(&self, csi: &[char], out: &mut [i32], out_len: &mut usize) {
         *out_len = 0;
         let mut val = 0;
         let mut has_val = false;
@@ -492,12 +492,16 @@ impl A2hFilter {
             }
         }
 
+        self.end_span();
+        self.start_span_if_needed();
+    }
+
+    fn start_span_if_needed(&mut self) {
+        self.end_span(); // If already in span.
+
         if !self.has_attr() {
-            self.end_span();
             return;
         }
-
-        self.end_span();
 
         self.in_span = true;
         self.add_to_line("<span ");
@@ -548,6 +552,7 @@ impl A2hFilter {
 
     fn convert(&mut self, line: &str, writer: &W) {
         self.start_div();
+        self.start_span_if_needed();
 
         let chars = line.chars().collect::<Vec<char>>();
         let size = chars.len();
@@ -585,6 +590,7 @@ impl A2hFilter {
                     i += 1;
                     if peek(&chars, i) != '\x00' {
                         self.start_div();
+                        self.start_span_if_needed();
                         continue;
                     } else {
                         break;
