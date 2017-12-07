@@ -1,6 +1,6 @@
 # a2h-rs
 
-ANSI escape sequence to HTML converter.
+ANSI escape sequence to HTML converter. (Rust version)
 
 ## Featurs
 
@@ -11,3 +11,7 @@ ANSI escape sequence to HTML converter.
 ## Installation
 
 cargo install -f --git https://github.com/omakoto/a2h-rs.git
+
+## See also
+
+[The Go version](https://github.com/omakoto/a2h)
